@@ -15,14 +15,30 @@ namespace agv_waypoints
     MainWindow(int argc, char** argv, QWidget *parent = nullptr);
     virtual ~MainWindow();
 
-  private Q_SLOTS:
+  private:
+    void sendCurrentWaypoint();
+    void loadCurrentRun();
+    void saveCurrentRun();
 
+  private Q_SLOTS:
+    void onGoalReceived(geometry_msgs::PoseStamped pose);
+    void onFeedbackReceived(geometry_msgs::PoseStamped pose);
+    void onGoalDone(bool success);
+
+    void on_buttonBegin_clicked();
+    void on_buttonEnd_clicked();
+    void on_buttonSend_clicked();
+    void on_buttonCancel_clicked();
+
+    void on_buttonSendSelected_clicked();
 
   protected:
-    Ui::MainWindowDesign ui;
+    Ui::MainWindowDesign ui_;
+    QNode qnode_;
 
-    QNode qnode;
-
+    bool recording_ = false;
+    int  currentWaypointIndex_ = 0;
+    std::string currentRunFilename_ = "";
   };
 
 }  // namespace agv_waypoints

@@ -21,16 +21,14 @@ namespace agv_waypoints
     void run();
     void quit();
 
+    void sendGoal(geometry_msgs::PoseStamped pose);
+    void cancelGoal();
+
   Q_SIGNALS:
     void rosShutdown();
     void goalReceived(geometry_msgs::PoseStamped);
     void feedbackReceived(geometry_msgs::PoseStamped);
     void goalDone(bool);
-
-
-  public Q_SLOTS:
-    void sendGoal(geometry_msgs::PoseStamped pose);
-    void cancelGoal();
 
   private:
     ros::Subscriber goalSubscriber_;

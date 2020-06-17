@@ -7,8 +7,9 @@ namespace agv_waypoints
   QNode::QNode(int argc, char** argv )
   {
     ros::init(argc, argv, "run_planner");
+
     nh_ = std::make_shared<ros::NodeHandle>();
-    actionClient_ = std::make_shared<MoveBaseClient>(*nh_, "move_base", false);
+    actionClient_ = std::make_shared<MoveBaseClient>(*nh_, "move_base", true);
 
     goalSubscriber_ = nh_->subscribe<geometry_msgs::PoseStamped>(
           "move_base_simple/goal",
