@@ -29,12 +29,16 @@
         <item>
          <widget class="QLabel" name="labelName">
           <property name="text">
-           <string>Run Name</string>
+           <string>Run File</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="lineName"/>
+         <widget class="QLineEdit" name="lineName">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>

@@ -19,6 +19,7 @@ namespace agv_waypoints
     void sendCurrentWaypoint();
     void loadCurrentRun();
     void saveCurrentRun();
+    void setCurrentRunFilename(QString filename);
 
   private Q_SLOTS:
     void onGoalReceived(geometry_msgs::PoseStamped pose);
@@ -29,8 +30,11 @@ namespace agv_waypoints
     void on_buttonEnd_clicked();
     void on_buttonSend_clicked();
     void on_buttonCancel_clicked();
-
     void on_buttonSendSelected_clicked();
+
+    void on_actionLoad_triggered();
+    void on_actionSave_triggered();
+    void on_actionSaveAs_triggered();
 
   protected:
     Ui::MainWindowDesign ui_;
@@ -38,7 +42,7 @@ namespace agv_waypoints
 
     bool recording_ = false;
     int  currentWaypointIndex_ = 0;
-    std::string currentRunFilename_ = "";
+    QString currentRunFilename_ = "";
   };
 
 }  // namespace agv_waypoints

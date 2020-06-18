@@ -86,6 +86,7 @@ set(QT_SOURCES
     src/main_window.cpp
     src/qnode.cpp
     src/waypoint_list_item.cpp
+    src/waypoint.cpp
 )
 
 # Target
