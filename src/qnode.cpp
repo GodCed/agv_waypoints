@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <agv_waypoints/qnode.hpp>
 #include <agv_waypoints/topics.hpp>
+#include <agv_waypoints/data_point.hpp>
 
 namespace agv_waypoints
 {
@@ -10,11 +11,18 @@ namespace agv_waypoints
 
     nh_ = std::make_shared<ros::NodeHandle>();
     actionClient_ = std::make_shared<MoveBaseClient>(*nh_, "move_base", true);
+    tfListener_ = std::make_shared<tf2_ros::TransformListener>(tfBuffer_, *nh_, true);
 
     goalSubscriber_ = nh_->subscribe<geometry_msgs::PoseStamped>(
           "move_base_simple/goal",
           10,
           &QNode::goalCallback,
+          this);
+
+    odomSubscriber_ = nh_->subscribe<nav_msgs::Odometry>(
+          "odom",
+          10,
+          &QNode::odomCallback,
           this);
 
     ROS_INFO("Waiting for move_base action server.");
@@ -51,9 +59,33 @@ namespace agv_waypoints
     actionClient_->cancelGoal();
   }
 
+  ros::Time QNode::currentTime()
+  {
+    ros::Time time;
+    do {
+      time = ros::Time::now();
+    } while (!time.isValid() && ros::ok());
+    return time;
+  }
+
   void QNode::goalCallback(const geometry_msgs::PoseStampedConstPtr& msg)
   {
     Q_EMIT goalReceived(*msg);
+  }
+
+  void QNode::odomCallback(const nav_msgs::OdometryConstPtr& msg)
+  {
+    DataPoint dataPoint(*msg);
+    try {
+      dataPoint.setTransform(tfBuffer_.lookupTransform(
+                               "agv1/map",
+                               "agv1/base_link",
+                               ros::Time(0)));
+    }
+    catch (tf2::TransformException &ex) {
+        ROS_WARN("%s",ex.what());
+    }
+    Q_EMIT odomReceived(dataPoint);
   }
 
   void QNode::feedbackCallback(const move_base_msgs::MoveBaseFeedbackConstPtr& feedback)

@@ -26,6 +26,9 @@ find_package(catkin REQUIRED COMPONENTS
     actionlib
     geometry_msgs
     move_base_msgs
+    nav_msgs
+    tf2_ros
+    tf
 )
 
 find_package(OpenCV REQUIRED
@@ -56,6 +59,9 @@ catkin_package(
         actionlib
         geometry_msgs
         move_base_msgs
+        nav_msgs
+        tf2_ros
+        tf
 )
 
 
@@ -87,6 +93,7 @@ set(QT_SOURCES
     src/qnode.cpp
     src/waypoint_list_item.cpp
     src/waypoint.cpp
+    src/data_point.cpp
 )
 
 # Target

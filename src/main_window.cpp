@@ -2,6 +2,7 @@
 #include <QFileDialog>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QTime>
 #include <fstream>
 #include <agv_waypoints/main_window.hpp>
 #include <agv_waypoints/waypoint_list_item.hpp>
@@ -23,9 +24,16 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent):
   QObject::connect(
         &qnode_, SIGNAL(feedbackReceived(geometry_msgs::PoseStamped)),
         this, SLOT(onFeedbackReceived(geometry_msgs::PoseStamped)));
+
+  QObject::connect(&qnode_, &QNode::odomReceived, this, &MainWindow::onOdomReceived);
+
   QObject::connect(
         &qnode_, SIGNAL(goalDone(bool)),
         this, SLOT(onGoalDone(bool)));
+
+  QObject::connect(
+        &timer_, SIGNAL(timeout()),
+        this, SLOT(onTimeout()));
 
   setWindowIcon(QIcon(":/images/icon.png"));
   ui_.statusBar->showMessage("Connected to move_base");
@@ -52,10 +60,19 @@ void MainWindow::onFeedbackReceived(geometry_msgs::PoseStamped)
 
 }
 
+void MainWindow::onOdomReceived(agv_waypoints::DataPoint dataPoint)
+{
+  if (logStarted_) {
+    dataPoint.setCurrentWaypoint(currentWaypointIndex_);
+    dataPoint.toStream(logStream_);
+  }
+}
+
 void MainWindow::onGoalDone(bool success)
 {
   QString msg;
   if(success) {
+    lastWpFailed_ = false;
     msg.sprintf("Reached goal %d", currentWaypointIndex_ +1);
     ui_.statusBar->showMessage(msg);
 
@@ -63,10 +80,61 @@ void MainWindow::onGoalDone(bool success)
       currentWaypointIndex_++;
       sendCurrentWaypoint();
     }
+    else if (ui_.checkBoxLoop->checkState() == Qt::CheckState::Checked)
+    {
+      currentWaypointIndex_ = 0;
+      sendCurrentWaypoint();
+    }
+    else {
+      on_buttonCancel_clicked();
+    }
   }
   else {
     msg.sprintf("Failed to reach goal %d", currentWaypointIndex_ + 1);
+    sendCurrentWaypoint();
+
+    if (!lastWpFailed_) { // If last waypoint failed it's probably just a retry
+      ros::Time now = qnode_.currentTime();
+      unsigned int elapsed = now.sec - lastFailure_.sec;
+      ui_.lineFailureTime->setText(timeStringFromSeconds(elapsed));
+      lastFailure_ = now;
+    }
+    lastWpFailed_ = true;
   }
+}
+
+void MainWindow::onTimeout()
+{
+  unsigned int elapsed = qnode_.currentTime().sec - startTime_.sec;
+  ui_.lineElapsedTime->setText(timeStringFromSeconds(elapsed));
+}
+
+void MainWindow::startLog()
+{
+  if (logStarted_) {
+    return;
+  }
+
+  QString filename;
+  filename.sprintf("agvrun_%lld.csv", QDateTime::currentMSecsSinceEpoch());
+
+  logFile_.setFileName(filename);
+  logFile_.open(QIODevice::WriteOnly);
+
+  logStream_.setDevice(&logFile_);
+  DataPoint::writeStreamHeaders(logStream_);
+
+  logStarted_ = true;
+}
+
+void MainWindow::endLog()
+{
+  if (!logStarted_) {
+    return;
+  }
+
+  logFile_.close();
+  logStarted_ = false;
 }
 
 void MainWindow::on_buttonBegin_clicked()
@@ -89,12 +157,25 @@ void MainWindow::on_buttonEnd_clicked()
 void MainWindow::on_buttonSend_clicked()
 {
   currentWaypointIndex_ = 0;
+  lastWpFailed_ = false;
   sendCurrentWaypoint();
+
+  startTime_ = qnode_.currentTime();
+  onTimeout();
+
+  lastFailure_ = startTime_;
+  ui_.lineFailureTime->setText("");
+
+  timer_.start(1000);
+  startLog();
 }
 
 void MainWindow::on_buttonCancel_clicked()
 {
   qnode_.cancelGoal();
+
+  timer_.stop();
+  endLog();
 }
 
 void MainWindow::on_buttonSendSelected_clicked()
@@ -102,6 +183,7 @@ void MainWindow::on_buttonSendSelected_clicked()
   QList<QListWidgetItem*> selection = ui_.listWaypoints->selectedItems();
   if (selection.length() > 0) {
     currentWaypointIndex_ = ui_.listWaypoints->row(selection.first());
+    lastWpFailed_ = false;
     sendCurrentWaypoint();
   }
 }
@@ -222,4 +304,21 @@ void MainWindow::on_actionSaveAs_triggered()
     setCurrentRunFilename(file);
     saveCurrentRun();
   }
+}
+
+QString MainWindow::timeStringFromSeconds(unsigned int sec)
+{
+  if (sec == 0)
+  {
+    return "";
+  }
+
+  unsigned int hours = sec / 3600;
+  unsigned int minutes = sec / 60;
+  unsigned int seconds = sec % 60;
+
+  QString time;
+  time.sprintf("%02d:%02d:%02d", hours, minutes, seconds);
+
+  return time;
 }

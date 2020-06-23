@@ -19,4 +19,7 @@
   <depend>geometry_msgs</depend>
   <depend>move_base_msgs</depend>
   <depend>libqt5-widgets</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf</depend>
 </package>
