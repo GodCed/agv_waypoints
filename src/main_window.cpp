@@ -90,7 +90,8 @@ void MainWindow::onGoalDone(bool success)
     }
   }
   else {
-    msg.sprintf("Failed to reach goal %d", currentWaypointIndex_ + 1);
+    msg.sprintf("Failed to reach goal %d. Retrying...", currentWaypointIndex_ + 1);
+    ui_.statusBar->showMessage(msg);
     sendCurrentWaypoint();
 
     if (!lastWpFailed_) { // If last waypoint failed it's probably just a retry
@@ -105,8 +106,13 @@ void MainWindow::onGoalDone(bool success)
 
 void MainWindow::onTimeout()
 {
-  unsigned int elapsed = qnode_.currentTime().sec - startTime_.sec;
+  unsigned int nowSec = qnode_.currentTime().sec;
+
+  unsigned int elapsed = nowSec - startTime_.sec;
   ui_.lineElapsedTime->setText(timeStringFromSeconds(elapsed));
+
+  elapsed = nowSec - this->lastFailure_.sec;
+  ui_.lineElapsedFailure->setText(timeStringFromSeconds(elapsed));
 }
 
 void MainWindow::startLog()
